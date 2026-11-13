@@ -1,0 +1,899 @@
+```html
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analisis Statistik Interaktif - Regresi & Uji Homogenitas</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js untuk Visualisasi Grafik -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts: Inter & Fira Code (untuk Terminal) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <!-- Font Awesome untuk Ikon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .font-mono-terminal {
+            font-family: 'Fira Code', monospace;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.4);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 116, 139, 0.7);
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Notifikasi Toast -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Header / Navbar -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200">
+                        <i class="fa-solid fa-chart-line text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg sm:text-xl font-bold text-slate-900 leading-tight">StatistikLab Python Web
+                        </h1>
+                        <p class="text-xs text-slate-500">Regresi Linear & Uji Homogenitas Varians Interaktif</p>
+                    </div>
+                </div>
+
+                <!-- Mode View Switcher -->
+                <div
+                    class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 self-start md:self-auto">
+                    <button id="btn-mode-modern" onclick="setViewMode('modern')"
+                        class="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-white text-indigo-600 shadow-sm">
+                        <i class="fa-solid fa-layer-group"></i>
+                        <span>Modern Dashboard</span>
+                    </button>
+                    <button id="btn-mode-terminal" onclick="setViewMode('terminal')"
+                        class="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-600 hover:text-slate-900">
+                        <i class="fa-solid fa-terminal"></i>
+                        <span>Terminal Output (Python)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Navigasi Tab Dataset -->
+            <div class="flex gap-2 mt-4 pt-3 border-t border-slate-100 overflow-x-auto">
+                <button id="tab-btn-1" onclick="switchTab(1)"
+                    class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all bg-indigo-600 text-white shadow-sm">
+                    <span class="px-2 py-0.5 rounded-md bg-indigo-500 text-white text-xs">No. 1</span>
+                    <span>Regresi Linear Berganda (Penjualan Mobil)</span>
+                </button>
+                <button id="tab-btn-2" onclick="switchTab(2)"
+                    class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all bg-white text-slate-600 border border-slate-200 hover:bg-slate-50">
+                    <span class="px-2 py-0.5 rounded-md bg-slate-200 text-slate-700 text-xs">No. 2</span>
+                    <span>Uji Homogenitas & Regresi Sederhana (Motivasi & Prestasi)</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- ================= TAB 1 ================= -->
+        <section id="section-tab-1" class="space-y-6">
+            <div
+                class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-base sm:text-lg font-bold text-slate-900">No. 1 — Analisis Regresi Linear Berganda
+                    </h2>
+                    <p class="text-xs sm:text-sm text-slate-500">Dataset: Data Penjualan Mobil (Variabel Independen X1,
+                        X2 terhadap Dependen X3/Y)</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button onclick="addRowTab1()"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-medium transition shadow-sm">
+                        <i class="fa-solid fa-plus"></i> Tambah Baris
+                    </button>
+                    <button onclick="resetDataTab1()"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-medium transition border border-slate-200">
+                        <i class="fa-solid fa-rotate-left"></i> Reset ke Data Awal
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modern View Tab 1 -->
+            <div id="tab1-modern-view" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div class="lg:col-span-5 space-y-6">
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div
+                            class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+                            <h3 class="font-semibold text-slate-800 text-sm flex items-center gap-2">
+                                <i class="fa-solid fa-table text-indigo-600"></i> Data Penjualan Mobil
+                            </h3>
+                            <span id="t1-row-count"
+                                class="text-xs font-medium px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700">10
+                                Baris</span>
+                        </div>
+                        <div class="overflow-x-auto max-h-[380px]">
+                            <table class="w-full text-left border-collapse">
+                                <thead
+                                    class="bg-slate-50 sticky top-0 z-10 border-b border-slate-200 text-xs uppercase text-slate-500">
+                                    <tr>
+                                        <th class="py-3 px-4 font-semibold w-14 text-center">Idx</th>
+                                        <th class="py-3 px-3 font-semibold">X1</th>
+                                        <th class="py-3 px-3 font-semibold">X2</th>
+                                        <th class="py-3 px-3 font-semibold">X3 (Y)</th>
+                                        <th class="py-3 px-3 font-semibold text-center w-14">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="t1-input-tbody" class="divide-y divide-slate-100 text-sm"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-2xl p-5 text-white shadow-md">
+                        <h3 class="font-bold text-base flex items-center gap-2 mb-1">
+                            <i class="fa-solid fa-calculator"></i> Kalkulator Prediksi Cepat
+                        </h3>
+                        <p class="text-xs text-indigo-100 mb-4">Masukkan nilai X1 dan X2 baru untuk memprediksi nilai Y
+                            (X3).</p>
+                        <div class="grid grid-cols-2 gap-3 mb-4">
+                            <div>
+                                <label class="block text-xs font-medium text-indigo-100 mb-1">Nilai X1</label>
+                                <input type="number" step="any" id="t1-calc-x1" value="15" oninput="updateCalcTab1()"
+                                    class="w-full px-3 py-2 rounded-xl bg-white/15 border border-white/25 text-white placeholder-indigo-200 focus:outline-none text-sm font-semibold">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-indigo-100 mb-1">Nilai X2</label>
+                                <input type="number" step="any" id="t1-calc-x2" value="20" oninput="updateCalcTab1()"
+                                    class="w-full px-3 py-2 rounded-xl bg-white/15 border border-white/25 text-white placeholder-indigo-200 focus:outline-none text-sm font-semibold">
+                            </div>
+                        </div>
+                        <div
+                            class="bg-white/10 backdrop-blur-sm rounded-xl p-3.5 border border-white/15 flex items-center justify-between">
+                            <span class="text-xs font-medium text-indigo-100">Hasil Prediksi (Ŷ):</span>
+                            <span id="t1-calc-result" class="text-xl font-bold tracking-tight">20.5766</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-7 space-y-6">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+                        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                            <p class="text-xs font-medium text-slate-500">Konstanta (a)</p>
+                            <p id="t1-stat-a" class="text-lg sm:text-xl font-bold text-slate-900 mt-1">15.2951</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                            <p class="text-xs font-medium text-slate-500">Koefisien X1 (b1)</p>
+                            <p id="t1-stat-b1" class="text-lg sm:text-xl font-bold text-rose-600 mt-1">-0.2879</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                            <p class="text-xs font-medium text-slate-500">Koefisien X2 (b2)</p>
+                            <p id="t1-stat-b2" class="text-lg sm:text-xl font-bold text-emerald-600 mt-1">0.4800</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                            <p class="text-xs font-medium text-slate-500">R-Square (R²)</p>
+                            <p id="t1-stat-r2" class="text-lg sm:text-xl font-bold text-indigo-600 mt-1">0.3014</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                            <p class="text-xs font-medium text-slate-500">Pengaruh Model</p>
+                            <p id="t1-stat-pct" class="text-lg sm:text-xl font-bold text-indigo-600 mt-1">30.14%</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                            <p class="text-xs font-medium text-slate-500">Mean Squared Error</p>
+                            <p id="t1-stat-mse" class="text-lg sm:text-xl font-bold text-amber-600 mt-1">37.6493</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600">Persamaan Regresi
+                            Linear Berganda</span>
+                        <div id="t1-equation"
+                            class="mt-2 p-3.5 bg-slate-900 text-emerald-400 font-mono-terminal text-xs sm:text-sm rounded-xl overflow-x-auto">
+                            Y = 15.2951 + (-0.2879 * X1) + (0.4800 * X2)
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-semibold text-slate-800 text-sm flex items-center gap-2">
+                                <i class="fa-solid fa-chart-column text-indigo-600"></i> Grafik Aktual vs Prediksi
+                            </h3>
+                        </div>
+                        <div class="relative h-64 w-full">
+                            <canvas id="chart-tab1"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="px-5 py-4 border-b border-slate-100 bg-slate-50/60">
+                            <h3 class="font-semibold text-slate-800 text-sm flex items-center gap-2">
+                                <i class="fa-solid fa-list-check text-indigo-600"></i> Tabel Hasil Prediksi & Residual
+                            </h3>
+                        </div>
+                        <div class="overflow-x-auto max-h-72">
+                            <table class="w-full text-left border-collapse">
+                                <thead
+                                    class="bg-slate-50 sticky top-0 border-b border-slate-200 text-xs uppercase text-slate-500">
+                                    <tr>
+                                        <th class="py-2.5 px-4 text-center">Index</th>
+                                        <th class="py-2.5 px-4 text-right">Aktual (Y)</th>
+                                        <th class="py-2.5 px-4 text-right">Prediksi (Ŷ)</th>
+                                        <th class="py-2.5 px-4 text-right">Selisih (Error)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="t1-pred-tbody" class="divide-y divide-slate-100 text-sm"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terminal View Tab 1 -->
+            <div id="tab1-terminal-view" class="hidden">
+                <div class="bg-black rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
+                    <div class="bg-zinc-900 px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+                            <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                            <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                            <span class="ml-2 text-xs text-zinc-400 font-mono-terminal">No.1 python — Console
+                                Output</span>
+                        </div>
+                        <button onclick="copyTerminal('t1-terminal-text')"
+                            class="text-xs px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition flex items-center gap-1.5">
+                            <i class="fa-regular fa-copy"></i> Salin Output
+                        </button>
+                    </div>
+                    <pre id="t1-terminal-text"
+                        class="p-5 sm:p-6 text-zinc-100 font-mono-terminal text-xs sm:text-sm leading-relaxed overflow-x-auto whitespace-pre"></pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 2 ================= -->
+        <section id="section-tab-2" class="hidden space-y-6">
+            <div
+                class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-base sm:text-lg font-bold text-slate-900">No. 2 — Uji Homogenitas Varians & Regresi
+                        Linear Sederhana</h2>
+                    <p class="text-xs sm:text-sm text-slate-500">Dataset: Data Motivasi (X) dan Prestasi Belajar (Y)</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button onclick="addRowTab2()"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-medium transition shadow-sm">
+                        <i class="fa-solid fa-plus"></i> Tambah Baris
+                    </button>
+                    <button onclick="resetDataTab2()"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-medium transition border border-slate-200">
+                        <i class="fa-solid fa-rotate-left"></i> Reset ke Data Awal
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modern View Tab 2 -->
+            <div id="tab2-modern-view" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div class="lg:col-span-5 space-y-6">
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div
+                            class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+                            <h3 class="font-semibold text-slate-800 text-sm flex items-center gap-2">
+                                <i class="fa-solid fa-table text-indigo-600"></i> Data Motivasi & Prestasi
+                            </h3>
+                            <span id="t2-row-count"
+                                class="text-xs font-medium px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700">12
+                                Baris</span>
+                        </div>
+                        <div class="overflow-x-auto max-h-[420px]">
+                            <table class="w-full text-left border-collapse">
+                                <thead
+                                    class="bg-slate-50 sticky top-0 z-10 border-b border-slate-200 text-xs uppercase text-slate-500">
+                                    <tr>
+                                        <th class="py-3 px-4 font-semibold w-14 text-center">Idx</th>
+                                        <th class="py-3 px-3 font-semibold">Motivasi (X)</th>
+                                        <th class="py-3 px-3 font-semibold">Prestasi (Y)</th>
+                                        <th class="py-3 px-3 font-semibold text-center w-14">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="t2-input-tbody" class="divide-y divide-slate-100 text-sm"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-2xl p-5 text-white shadow-md">
+                        <h3 class="font-bold text-base flex items-center gap-2 mb-1">
+                            <i class="fa-solid fa-graduation-cap"></i> Kalkulator Prediksi Prestasi
+                        </h3>
+                        <p class="text-xs text-emerald-100 mb-4">Masukkan skor Motivasi (X) untuk memprediksi skor
+                            Prestasi Belajar (Y).</p>
+                        <div class="mb-4">
+                            <label class="block text-xs font-medium text-emerald-100 mb-1">Skor Motivasi (X)</label>
+                            <input type="number" step="any" id="t2-calc-x" value="70" oninput="updateCalcTab2()"
+                                class="w-full px-3.5 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-emerald-200 focus:outline-none text-sm font-semibold">
+                        </div>
+                        <div
+                            class="bg-white/10 backdrop-blur-sm rounded-xl p-3.5 border border-white/15 flex items-center justify-between">
+                            <span class="text-xs font-medium text-emerald-100">Prediksi Prestasi (Ŷ):</span>
+                            <span id="t2-calc-result" class="text-xl font-bold tracking-tight">83.01</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-7 space-y-6">
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                        <div
+                            class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-100">
+                            <div>
+                                <h3 class="font-bold text-slate-900 text-base flex items-center gap-2">
+                                    <i class="fa-solid fa-scale-balanced text-indigo-600"></i> Uji Homogenitas Varians
+                                    (Levene Test)
+                                </h3>
+                                <p class="text-xs text-slate-500">Perbandingan varians kelompok Motivasi dan Prestasi
+                                    Belajar</p>
+                            </div>
+                            <span id="t2-homogen-badge"
+                                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 self-start">
+                                <i class="fa-solid fa-circle-check"></i> Varians Homogen
+                            </span>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                            <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                <p class="text-xs text-slate-500">Varians Motivasi</p>
+                                <p id="t2-var-x" class="text-base sm:text-lg font-bold text-slate-900 mt-0.5">61.1742
+                                </p>
+                            </div>
+                            <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                <p class="text-xs text-slate-500">Varians Prestasi</p>
+                                <p id="t2-var-y" class="text-base sm:text-lg font-bold text-slate-900 mt-0.5">60.6061
+                                </p>
+                            </div>
+                            <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                <p class="text-xs text-slate-500">Levene Statistic</p>
+                                <p id="t2-levene-stat" class="text-base sm:text-lg font-bold text-indigo-600 mt-0.5">
+                                    0.1122</p>
+                            </div>
+                            <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                <p class="text-xs text-slate-500">Sig. (p-value)</p>
+                                <p id="t2-levene-pval" class="text-base sm:text-lg font-bold text-indigo-600 mt-0.5">
+                                    0.7408</p>
+                            </div>
+                        </div>
+                        <div id="t2-homogen-conclusion"
+                            class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs sm:text-sm font-medium">
+                            Kesimpulan: p > 0.05, varians homogen (sama)
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                            <p class="text-xs font-medium text-slate-500">Konstanta (a)</p>
+                            <p id="t2-stat-a" class="text-lg font-bold text-slate-900 mt-1">27.5232</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                            <p class="text-xs font-medium text-slate-500">Koefisien Motivasi (b)</p>
+                            <p id="t2-stat-b" class="text-lg font-bold text-emerald-600 mt-1">0.7926</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                            <p class="text-xs font-medium text-slate-500">R-Square (R²)</p>
+                            <p id="t2-stat-r2" class="text-lg font-bold text-indigo-600 mt-1">0.6347</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                            <p class="text-xs font-medium text-slate-500">MSE</p>
+                            <p id="t2-stat-mse" class="text-lg font-bold text-amber-600 mt-1">20.2923</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600">Persamaan
+                                Regresi Linear Sederhana</span>
+                            <span id="t2-stat-pct" class="text-xs font-semibold text-slate-500">Pengaruh: 63.47%</span>
+                        </div>
+                        <div id="t2-equation"
+                            class="mt-2 p-3.5 bg-slate-900 text-emerald-400 font-mono-terminal text-xs sm:text-sm rounded-xl overflow-x-auto">
+                            Y = 27.5232 + (0.7926 * X)
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-semibold text-slate-800 text-sm flex items-center gap-2">
+                                <i class="fa-solid fa-chart-line text-indigo-600"></i> Scatter Plot & Garis Regresi
+                                Linear
+                            </h3>
+                        </div>
+                        <div class="relative h-64 w-full">
+                            <canvas id="chart-tab2"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="px-5 py-4 border-b border-slate-100 bg-slate-50/60">
+                            <h3 class="font-semibold text-slate-800 text-sm flex items-center gap-2">
+                                <i class="fa-solid fa-list-check text-indigo-600"></i> Tabel Hasil Prediksi Prestasi
+                            </h3>
+                        </div>
+                        <div class="overflow-x-auto max-h-72">
+                            <table class="w-full text-left border-collapse">
+                                <thead
+                                    class="bg-slate-50 sticky top-0 border-b border-slate-200 text-xs uppercase text-slate-500">
+                                    <tr>
+                                        <th class="py-2.5 px-4 text-center">Index</th>
+                                        <th class="py-2.5 px-4 text-right">Aktual (Y)</th>
+                                        <th class="py-2.5 px-4 text-right">Prediksi (Ŷ)</th>
+                                        <th class="py-2.5 px-4 text-right">Selisih (Error)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="t2-pred-tbody" class="divide-y divide-slate-100 text-sm"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terminal View Tab 2 -->
+            <div id="tab2-terminal-view" class="hidden">
+                <div class="bg-black rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
+                    <div class="bg-zinc-900 px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+                            <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                            <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                            <span class="ml-2 text-xs text-zinc-400 font-mono-terminal">No.2 python — Console
+                                Output</span>
+                        </div>
+                        <button onclick="copyTerminal('t2-terminal-text')"
+                            class="text-xs px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition flex items-center gap-1.5">
+                            <i class="fa-regular fa-copy"></i> Salin Output
+                        </button>
+                    </div>
+                    <pre id="t2-terminal-text"
+                        class="p-5 sm:p-6 text-zinc-100 font-mono-terminal text-xs sm:text-sm leading-relaxed overflow-x-auto whitespace-pre"></pre>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-8">
+        <div
+            class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
+            <p>StatistikLab Interaktif • Perhitungan OLS Matrix, Uji Levene & Visualisasi Real-time</p>
+            <p>Mendukung Mode Modern Dashboard & Terminal Python</p>
+        </div>
+    </footer>
+
+    <!-- Script Kalkulasi & Grafik -->
+    <script>
+        const DEFAULT_DATA_TAB1 = [
+            { x1: 8, x2: 12, y: 23 },
+            { x1: 10, x2: 11, y: 14 },
+            { x1: 12, x2: 23, y: 26 },
+            { x1: 11, x2: 14, y: 25 },
+            { x1: 23, x2: 26, y: 28 },
+            { x1: 14, x2: 25, y: 8 },
+            { x1: 26, x2: 8, y: 10 },
+            { x1: 25, x2: 10, y: 12 },
+            { x1: 28, x2: 12, y: 11 },
+            { x1: 24, x2: 26, y: 24 }
+        ];
+
+        const DEFAULT_DATA_TAB2 = [
+            { x: 75, y: 80 }, { x: 60, y: 75 }, { x: 65, y: 75 },
+            { x: 75, y: 90 }, { x: 65, y: 85 }, { x: 80, y: 85 },
+            { x: 75, y: 95 }, { x: 80, y: 95 }, { x: 65, y: 80 },
+            { x: 80, y: 90 }, { x: 60, y: 75 }, { x: 65, y: 75 }
+        ];
+
+        let dataTab1 = JSON.parse(JSON.stringify(DEFAULT_DATA_TAB1));
+        let dataTab2 = JSON.parse(JSON.stringify(DEFAULT_DATA_TAB2));
+        let currentTab = 1;
+        let modelTab1 = { a: 0, b1: 0, b2: 0 };
+        let modelTab2 = { a: 0, b: 0 };
+        let chart1Instance = null;
+        let chart2Instance = null;
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const colors = {
+                info: 'bg-slate-900 text-white border-slate-700',
+                success: 'bg-emerald-600 text-white border-emerald-500',
+                warning: 'bg-amber-600 text-white border-amber-500'
+            };
+            toast.className = `${colors[type]} px-4 py-2.5 rounded-xl shadow-lg border text-xs sm:text-sm font-medium flex items-center gap-2 transition-all duration-300 transform translate-y-2 opacity-0 pointer-events-auto`;
+            toast.innerHTML = `<i class="fa-solid fa-circle-info"></i> <span>${message}</span>`;
+            container.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.remove('translate-y-2', 'opacity-0'));
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 2600);
+        }
+
+        function copyTerminal(elementId) {
+            const text = document.getElementById(elementId).innerText;
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast('Output terminal disalin ke clipboard!', 'success');
+            } catch (err) {
+                showToast('Gagal menyalin.', 'warning');
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function switchTab(tabNum) {
+            currentTab = tabNum;
+            const sec1 = document.getElementById('section-tab-1');
+            const sec2 = document.getElementById('section-tab-2');
+            const btn1 = document.getElementById('tab-btn-1');
+            const btn2 = document.getElementById('tab-btn-2');
+
+            if (tabNum === 1) {
+                sec1.classList.remove('hidden');
+                sec2.classList.add('hidden');
+                btn1.className = "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all bg-indigo-600 text-white shadow-sm";
+                btn1.querySelector('span').className = "px-2 py-0.5 rounded-md bg-indigo-500 text-white text-xs";
+                btn2.className = "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all bg-white text-slate-600 border border-slate-200 hover:bg-slate-50";
+                btn2.querySelector('span').className = "px-2 py-0.5 rounded-md bg-slate-200 text-slate-700 text-xs";
+                recalculateTab1();
+            } else {
+                sec1.classList.add('hidden');
+                sec2.classList.remove('hidden');
+                btn2.className = "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all bg-indigo-600 text-white shadow-sm";
+                btn2.querySelector('span').className = "px-2 py-0.5 rounded-md bg-indigo-500 text-white text-xs";
+                btn1.className = "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all bg-white text-slate-600 border border-slate-200 hover:bg-slate-50";
+                btn1.querySelector('span').className = "px-2 py-0.5 rounded-md bg-slate-200 text-slate-700 text-xs";
+                recalculateTab2();
+            }
+        }
+
+        function setViewMode(mode) {
+            const btnModern = document.getElementById('btn-mode-modern');
+            const btnTerm = document.getElementById('btn-mode-terminal');
+            const t1Mod = document.getElementById('tab1-modern-view');
+            const t1Term = document.getElementById('tab1-terminal-view');
+            const t2Mod = document.getElementById('tab2-modern-view');
+            const t2Term = document.getElementById('tab2-terminal-view');
+
+            if (mode === 'modern') {
+                btnModern.className = "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-white text-indigo-600 shadow-sm";
+                btnTerm.className = "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-600 hover:text-slate-900";
+                t1Mod.classList.remove('hidden'); t1Term.classList.add('hidden');
+                t2Mod.classList.remove('hidden'); t2Term.classList.add('hidden');
+                if (currentTab === 1 && chart1Instance) chart1Instance.resize();
+                if (currentTab === 2 && chart2Instance) chart2Instance.resize();
+            } else {
+                btnTerm.className = "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-slate-900 text-emerald-400 shadow-sm";
+                btnModern.className = "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-600 hover:text-slate-900";
+                t1Mod.classList.add('hidden'); t1Term.classList.remove('hidden');
+                t2Mod.classList.add('hidden'); t2Term.classList.remove('hidden');
+            }
+        }
+
+        function invert3x3(m) {
+            const a = m[0][0], b = m[0][1], c = m[0][2];
+            const d = m[1][0], e = m[1][1], f = m[1][2];
+            const g = m[2][0], h = m[2][1], i = m[2][2];
+            const det = a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
+            if (Math.abs(det) < 1e-12) return null;
+            const invDet = 1 / det;
+            return [
+                [(e * i - f * h) * invDet, (c * h - b * i) * invDet, (b * f - c * e) * invDet],
+                [(f * g - d * i) * invDet, (a * i - c * g) * invDet, (c * d - a * f) * invDet],
+                [(d * h - e * g) * invDet, (b * g - a * h) * invDet, (a * e - b * d) * invDet]
+            ];
+        }
+
+        function logGamma(z) {
+            const c = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
+            let x = z, y = z, tmp = x + 5.5;
+            tmp -= (x + 0.5) * Math.log(tmp);
+            let ser = 1.000000000190015;
+            for (let j = 0; j < 6; j++) ser += c[j] / ++y;
+            return -tmp + Math.log(2.5066282746310005 * ser / x);
+        }
+
+        function betacf(a, b, x) {
+            const MAXIT = 200, EPS = 3.0e-12, FPMIN = 1.0e-30;
+            let qab = a + b, qap = a + 1.0, qam = a - 1.0, c = 1.0, d = 1.0 - qab * x / qap;
+            if (Math.abs(d) < FPMIN) d = FPMIN;
+            d = 1.0 / d;
+            let h = d;
+            for (let m = 1; m <= MAXIT; m++) {
+                let m2 = 2 * m;
+                let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+                d = 1.0 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN;
+                c = 1.0 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN;
+                d = 1.0 / d; h *= d * c;
+                aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+                d = 1.0 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN;
+                c = 1.0 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN;
+                d = 1.0 / d; let del = d * c; h *= del;
+                if (Math.abs(del - 1.0) < EPS) break;
+            }
+            return h;
+        }
+
+        function betai(a, b, x) {
+            if (x < 0.0 || x > 1.0) return 0.0;
+            if (x === 0.0 || x === 1.0) return x;
+            const bt = Math.exp(logGamma(a + b) - logGamma(a) - logGamma(b) + a * Math.log(x) + b * Math.log(1.0 - x));
+            if (x < (a + 1.0) / (a + b + 2.0)) return bt * betacf(a, b, x) / a;
+            return 1.0 - bt * betacf(b, a, 1.0 - x) / b;
+        }
+
+        function fTestPValue(fStat, df1, df2) {
+            if (fStat <= 0 || df1 <= 0 || df2 <= 0) return 1.0;
+            const x = df2 / (df2 + df1 * fStat);
+            return betai(df2 / 2.0, df1 / 2.0, x);
+        }
+
+        function computeLeveneTest(group1, group2) {
+            const n1 = group1.length, n2 = group2.length, N = n1 + n2, k = 2;
+            const mean1 = group1.reduce((a, b) => a + b, 0) / n1;
+            const mean2 = group2.reduce((a, b) => a + b, 0) / n2;
+            const z1 = group1.map(v => Math.abs(v - mean1));
+            const z2 = group2.map(v => Math.abs(v - mean2));
+            const z1Mean = z1.reduce((a, b) => a + b, 0) / n1;
+            const z2Mean = z2.reduce((a, b) => a + b, 0) / n2;
+            const zGrandMean = (z1.reduce((a, b) => a + b, 0) + z2.reduce((a, b) => a + b, 0)) / N;
+            const num = (N - k) * (n1 * Math.pow(z1Mean - zGrandMean, 2) + n2 * Math.pow(z2Mean - zGrandMean, 2));
+            const den = (k - 1) * (z1.reduce((a, v) => a + Math.pow(v - z1Mean, 2), 0) + z2.reduce((a, v) => a + Math.pow(v - z2Mean, 2), 0));
+            const W = den === 0 ? 0 : num / den;
+            return { statistic: W, pValue: fTestPValue(W, k - 1, N - k) };
+        }
+
+        function renderTableTab1() {
+            const tbody = document.getElementById('t1-input-tbody');
+            tbody.innerHTML = '';
+            document.getElementById('t1-row-count').innerText = `${dataTab1.length} Baris`;
+            dataTab1.forEach((row, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition";
+                tr.innerHTML = `
+                    <td class="py-2 px-4 text-center font-mono text-xs text-slate-500 font-semibold">${idx}</td>
+                    <td class="py-1.5 px-2"><input type="number" step="any" value="${row.x1}" onchange="updateRowTab1(${idx}, 'x1', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-sm font-medium"></td>
+                    <td class="py-1.5 px-2"><input type="number" step="any" value="${row.x2}" onchange="updateRowTab1(${idx}, 'x2', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-sm font-medium"></td>
+                    <td class="py-1.5 px-2"><input type="number" step="any" value="${row.y}" onchange="updateRowTab1(${idx}, 'y', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-sm font-medium"></td>
+                    <td class="py-1.5 px-2 text-center"><button onclick="deleteRowTab1(${idx})" class="w-8 h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"><i class="fa-solid fa-trash-can text-xs"></i></button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateRowTab1(idx, field, val) {
+            dataTab1[idx][field] = parseFloat(val) || 0;
+            recalculateTab1();
+        }
+
+        function addRowTab1() { dataTab1.push({ x1: 15, x2: 15, y: 20 }); renderTableTab1(); recalculateTab1(); }
+        function deleteRowTab1(idx) { if (dataTab1.length <= 4) return showToast('Minimal 4 baris!', 'warning'); dataTab1.splice(idx, 1); renderTableTab1(); recalculateTab1(); }
+        function resetDataTab1() { dataTab1 = JSON.parse(JSON.stringify(DEFAULT_DATA_TAB1)); renderTableTab1(); recalculateTab1(); }
+
+        function recalculateTab1() {
+            const n = dataTab1.length;
+            let s1 = n, sx1 = 0, sx2 = 0, sx1x1 = 0, sx1x2 = 0, sx2x2 = 0, sy = 0, sx1y = 0, sx2y = 0;
+            dataTab1.forEach(r => {
+                sx1 += r.x1; sx2 += r.x2; sx1x1 += r.x1 * r.x1; sx1x2 += r.x1 * r.x2; sx2x2 += r.x2 * r.x2;
+                sy += r.y; sx1y += r.x1 * r.y; sx2y += r.x2 * r.y;
+            });
+            const invXtX = invert3x3([[s1, sx1, sx2], [sx1, sx1x1, sx1x2], [sx2, sx1x2, sx2x2]]);
+            let a = 0, b1 = 0, b2 = 0;
+            if (invXtX) {
+                const XtY = [sy, sx1y, sx2y];
+                a = invXtX[0][0] * XtY[0] + invXtX[0][1] * XtY[1] + invXtX[0][2] * XtY[2];
+                b1 = invXtX[1][0] * XtY[0] + invXtX[1][1] * XtY[1] + invXtX[1][2] * XtY[2];
+                b2 = invXtX[2][0] * XtY[0] + invXtX[2][1] * XtY[1] + invXtX[2][2] * XtY[2];
+            }
+            modelTab1 = { a, b1, b2 };
+            const meanY = sy / n;
+            let ssRes = 0, ssTot = 0, predictions = [];
+            dataTab1.forEach(r => {
+                const pred = a + b1 * r.x1 + b2 * r.x2;
+                predictions.push(pred);
+                ssRes += Math.pow(r.y - pred, 2);
+                ssTot += Math.pow(r.y - meanY, 2);
+            });
+            const r2 = ssTot === 0 ? 0 : 1 - (ssRes / ssTot);
+            const mse = ssRes / n;
+
+            document.getElementById('t1-stat-a').innerText = a.toFixed(4);
+            document.getElementById('t1-stat-b1').innerText = b1.toFixed(4);
+            document.getElementById('t1-stat-b2').innerText = b2.toFixed(4);
+            document.getElementById('t1-stat-r2').innerText = r2.toFixed(4);
+            document.getElementById('t1-stat-pct').innerText = `${(r2 * 100).toFixed(2)}%`;
+            document.getElementById('t1-stat-mse').innerText = mse.toFixed(4);
+            document.getElementById('t1-equation').innerText = `Y = ${a.toFixed(4)} + (${b1.toFixed(4)} * X1) + (${b2.toFixed(4)} * X2)`;
+
+            const predTbody = document.getElementById('t1-pred-tbody');
+            predTbody.innerHTML = '';
+            dataTab1.forEach((r, idx) => {
+                const pred = predictions[idx];
+                const err = r.y - pred;
+                predTbody.innerHTML += `<tr class="hover:bg-slate-50"><td class="py-2 px-4 text-center font-mono text-xs">${idx}</td><td class="py-2 px-4 text-right font-semibold">${r.y}</td><td class="py-2 px-4 text-right font-semibold text-indigo-600">${pred.toFixed(2)}</td><td class="py-2 px-4 text-right font-mono text-xs ${err >= 0 ? 'text-emerald-600' : 'text-rose-600'}">${err >= 0 ? '+' : ''}${err.toFixed(2)}</td></tr>`;
+            });
+            updateCalcTab1();
+            updateChartTab1(predictions);
+
+            let term = `DATA PENJUALAN MOBIL\n    X1   X2   X3\n`;
+            dataTab1.forEach((r, idx) => term += `${String(idx).padEnd(2)}  ${String(r.x1).padStart(2)}   ${String(r.x2).padStart(2)}   ${String(r.y).padStart(2)}\n`);
+            term += `\nHASIL REGRESI LINEAR BERGANDA\nKonstanta (a) = ${a.toFixed(4)}\nKoefisien X1 (b1) = ${b1.toFixed(4)}\nKoefisien X2 (b2) = ${b2.toFixed(4)}\n\nPersamaan Regresi:\nY = ${a.toFixed(4)} + (${b1.toFixed(4)} * X1) + (${b2.toFixed(4)} * X2)\n\nHASIL PREDIKSI\n    Aktual   Prediksi\n`;
+            dataTab1.forEach((r, idx) => term += `${String(idx).padEnd(2)}      ${String(r.y).padStart(2)}      ${predictions[idx].toFixed(2).padStart(6)}\n`);
+            term += `\nKOEFISIEN DETERMINASI\nR-Square = ${r2.toFixed(4)}\nPersentase pengaruh model = ${(r2 * 100).toFixed(2)}%\n\nMEAN SQUARED ERROR (MSE)\nMSE = ${mse.toFixed(4)}`;
+            document.getElementById('t1-terminal-text').textContent = term;
+        }
+
+        function updateCalcTab1() {
+            const x1 = parseFloat(document.getElementById('t1-calc-x1').value) || 0;
+            const x2 = parseFloat(document.getElementById('t1-calc-x2').value) || 0;
+            document.getElementById('t1-calc-result').innerText = (modelTab1.a + modelTab1.b1 * x1 + modelTab1.b2 * x2).toFixed(4);
+        }
+
+        function updateChartTab1(predictions) {
+            const ctx = document.getElementById('chart-tab1').getContext('2d');
+            const labels = dataTab1.map((_, i) => `Idx ${i}`);
+            if (chart1Instance) {
+                chart1Instance.data.labels = labels;
+                chart1Instance.data.datasets[0].data = dataTab1.map(r => r.y);
+                chart1Instance.data.datasets[1].data = predictions.map(v => Number(v.toFixed(2)));
+                chart1Instance.update();
+                return;
+            }
+            chart1Instance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Aktual (Y)', data: dataTab1.map(r => r.y), backgroundColor: 'rgba(79, 70, 229, 0.85)', borderRadius: 6 },
+                        { label: 'Prediksi (Ŷ)', data: predictions.map(v => Number(v.toFixed(2))), backgroundColor: 'rgba(16, 185, 129, 0.85)', borderRadius: 6 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function renderTableTab2() {
+            const tbody = document.getElementById('t2-input-tbody');
+            tbody.innerHTML = '';
+            document.getElementById('t2-row-count').innerText = `${dataTab2.length} Baris`;
+            dataTab2.forEach((row, idx) => {
+                tbody.innerHTML += `<tr class="hover:bg-slate-50 transition"><td class="py-2 px-4 text-center font-mono text-xs">${idx}</td><td class="py-1.5 px-2"><input type="number" step="any" value="${row.x}" onchange="updateRowTab2(${idx}, 'x', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-sm"></td><td class="py-1.5 px-2"><input type="number" step="any" value="${row.y}" onchange="updateRowTab2(${idx}, 'y', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-sm"></td><td class="py-1.5 px-2 text-center"><button onclick="deleteRowTab2(${idx})" class="w-8 h-8 rounded-lg text-slate-400 hover:text-rose-600"><i class="fa-solid fa-trash-can text-xs"></i></button></td></tr>`;
+            });
+        }
+
+        function updateRowTab2(idx, field, val) { dataTab2[idx][field] = parseFloat(val) || 0; recalculateTab2(); }
+        function addRowTab2() { dataTab2.push({ x: 70, y: 85 }); renderTableTab2(); recalculateTab2(); }
+        function deleteRowTab2(idx) { if (dataTab2.length <= 3) return showToast('Minimal 3 baris!', 'warning'); dataTab2.splice(idx, 1); renderTableTab2(); recalculateTab2(); }
+        function resetDataTab2() { dataTab2 = JSON.parse(JSON.stringify(DEFAULT_DATA_TAB2)); renderTableTab2(); recalculateTab2(); }
+
+        function recalculateTab2() {
+            const n = dataTab2.length;
+            const xs = dataTab2.map(r => r.x), ys = dataTab2.map(r => r.y);
+            const meanX = xs.reduce((a, b) => a + b, 0) / n;
+            const meanY = ys.reduce((a, b) => a + b, 0) / n;
+            const varX = xs.reduce((a, v) => a + Math.pow(v - meanX, 2), 0) / (n - 1);
+            const varY = ys.reduce((a, v) => a + Math.pow(v - meanY, 2), 0) / (n - 1);
+            const levene = computeLeveneTest(xs, ys);
+            const isHomogen = levene.pValue > 0.05;
+
+            let numB = 0, denB = 0;
+            for (let i = 0; i < n; i++) {
+                numB += (xs[i] - meanX) * (ys[i] - meanY);
+                denB += Math.pow(xs[i] - meanX, 2);
+            }
+            const b = denB === 0 ? 0 : numB / denB;
+            const a = meanY - b * meanX;
+            modelTab2 = { a, b };
+
+            let ssRes = 0, ssTot = 0, predictions = [];
+            dataTab2.forEach(r => {
+                const pred = a + b * r.x;
+                predictions.push(pred);
+                ssRes += Math.pow(r.y - pred, 2);
+                ssTot += Math.pow(r.y - meanY, 2);
+            });
+            const r2 = ssTot === 0 ? 0 : 1 - (ssRes / ssTot);
+            const mse = ssRes / n;
+
+            document.getElementById('t2-var-x').innerText = varX.toFixed(4);
+            document.getElementById('t2-var-y').innerText = varY.toFixed(4);
+            document.getElementById('t2-levene-stat').innerText = levene.statistic.toFixed(4);
+            document.getElementById('t2-levene-pval').innerText = levene.pValue.toFixed(4);
+            document.getElementById('t2-stat-a').innerText = a.toFixed(4);
+            document.getElementById('t2-stat-b').innerText = b.toFixed(4);
+            document.getElementById('t2-stat-r2').innerText = r2.toFixed(4);
+            document.getElementById('t2-stat-mse').innerText = mse.toFixed(4);
+            document.getElementById('t2-stat-pct').innerText = `Pengaruh: ${(r2 * 100).toFixed(2)}%`;
+            document.getElementById('t2-equation').innerText = `Y = ${a.toFixed(4)} + (${b.toFixed(4)} * X)`;
+
+            const concText = isHomogen ? 'Kesimpulan: p > 0.05, varians homogen (sama)' : 'Kesimpulan: p <= 0.05, varians tidak homogen';
+            document.getElementById('t2-homogen-conclusion').innerText = concText;
+
+            const predTbody = document.getElementById('t2-pred-tbody');
+            predTbody.innerHTML = '';
+            dataTab2.forEach((r, idx) => {
+                const pred = predictions[idx];
+                const err = r.y - pred;
+                predTbody.innerHTML += `<tr class="hover:bg-slate-50"><td class="py-2 px-4 text-center font-mono text-xs">${idx}</td><td class="py-2 px-4 text-right font-semibold">${r.y}</td><td class="py-2 px-4 text-right font-semibold text-indigo-600">${pred.toFixed(2)}</td><td class="py-2 px-4 text-right font-mono text-xs ${err >= 0 ? 'text-emerald-600' : 'text-rose-600'}">${err >= 0 ? '+' : ''}${err.toFixed(2)}</td></tr>`;
+            });
+            updateCalcTab2();
+            updateChartTab2(a, b);
+
+            let term = `DATA MOTIVASI DAN PRESTASI BELAJAR\n    Motivasi   Prestasi\n`;
+            dataTab2.forEach((r, idx) => term += `${String(idx).padEnd(2)}        ${String(r.x).padStart(2)}         ${String(r.y).padStart(2)}\n`);
+            term += `\nUJI HOMOGENITAS VARIANS\nVarians Motivasi = ${varX.toFixed(4)}\nVarians Prestasi = ${varY.toFixed(4)}\nLevene Statistic = ${levene.statistic.toFixed(4)}\nSig. (p-value)   = ${levene.pValue.toFixed(4)}\n${concText}\n\nHASIL REGRESI LINEAR SEDERHANA\nKonstanta (a) = ${a.toFixed(4)}\nKoefisien Motivasi (b) = ${b.toFixed(4)}\n\nPersamaan Regresi:\nY = ${a.toFixed(4)} + (${b.toFixed(4)} * X)\n\nHASIL PREDIKSI\n    Aktual   Prediksi\n`;
+            dataTab2.forEach((r, idx) => term += `${String(idx).padEnd(2)}      ${String(r.y).padStart(2)}      ${predictions[idx].toFixed(2).padStart(6)}\n`);
+            term += `\nKOEFISIEN DETERMINASI\nR-Square = ${r2.toFixed(4)}\nPersentase pengaruh model = ${(r2 * 100).toFixed(2)}%\n\nMEAN SQUARED ERROR (MSE)\nMSE = ${mse.toFixed(4)}`;
+            document.getElementById('t2-terminal-text').textContent = term;
+        }
+
+        function updateCalcTab2() {
+            const x = parseFloat(document.getElementById('t2-calc-x').value) || 0;
+            document.getElementById('t2-calc-result').innerText = (modelTab2.a + modelTab2.b * x).toFixed(2);
+        }
+
+        function updateChartTab2(a, b) {
+            const ctx = document.getElementById('chart-tab2').getContext('2d');
+            const scatterPoints = dataTab2.map(r => ({ x: r.x, y: r.y }));
+            const minX = Math.min(...xs = dataTab2.map(r => r.x)) - 2;
+            const maxX = Math.max(...xs) + 2;
+            const linePoints = [{ x: minX, y: a + b * minX }, { x: maxX, y: a + b * maxX }];
+
+            if (chart2Instance) {
+                chart2Instance.data.datasets[0].data = scatterPoints;
+                chart2Instance.data.datasets[1].data = linePoints;
+                chart2Instance.update();
+                return;
+            }
+            chart2Instance = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        { label: 'Data Aktual', data: scatterPoints, backgroundColor: 'rgba(79, 70, 229, 0.85)', pointRadius: 6 },
+                        { label: 'Garis Regresi', data: linePoints, type: 'line', borderColor: 'rgba(16, 185, 129, 1)', borderWidth: 2.5, pointRadius: 0, fill: false }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        window.onload = function () {
+            renderTableTab1(); recalculateTab1();
+            renderTableTab2(); recalculateTab2();
+        };
+    </script>
+</body>
+
+</html>
+```
